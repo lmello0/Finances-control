@@ -1,7 +1,7 @@
 import csv
 import os
 import shutil
-
+from ftplib import FTP
 
 def get_operation(operation:str):
     if 'COMPRA CARTAO' in operation or 'PAGAMENTO FATURA INTER' in operation:
@@ -37,19 +37,18 @@ def inter_fin(file):
     
     return transactions
 
-def get_file():
-    for file in os.listdir('.'):
-        if os.path.isfile(file) and file.endswith('.csv'):
+def get_file(session:FTP):
+    for file in session.nlst():
+        if file.endswith('.csv'):
+            session.retrbinary(f'RETR {file}', open(file, 'wb').write)
             return file
 
     return None
 
-def move_bank_statement(file:str):
-    try:
-        shutil.move(file, f'./log/{file}')
-    except FileNotFoundError:
-        os.mkdir('./log/')
-        move_bank_statement(file)
+def move_bank_statement(file:str, session:FTP):
+    session.storbinary(f'STOR ./log/{file}', open(file, 'rb'))
+    session.delete(file)
+    os.remove(file)
 
 if __name__ == '__main__':
     print(inter_fin(get_file()))

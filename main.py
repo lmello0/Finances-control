@@ -1,4 +1,6 @@
+import sys
 from datetime import datetime
+from ftplib import FTP
 from time import sleep, time
 
 import gspread
@@ -8,11 +10,14 @@ from core import *
 if __name__ == '__main__':
     start = time()
 
+    print('LOGANDO FTP')
+    session = FTP(sys.argv[1], sys.argv[2], sys.argv[3])
+
     print('GETTING MONTH')
     MONTH = datetime.now().strftime('%B').lower()
 
     print('GETTING FILE')
-    FILE = get_file()
+    FILE = get_file(session)
 
     if FILE != None:
         print('LOGGING IN GOOGLE ACCOUNT')
@@ -32,8 +37,9 @@ if __name__ == '__main__':
             
             sleep(1)
             row_num += 1
-            
-        move_bank_statement(FILE)
+        
+        print('MOVING FILE TO LOG')
+        move_bank_statement(FILE, session)
 
     end = time()
     print(f'\nDURATION.: {round(end - start, 2)}s')
