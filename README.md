@@ -38,4 +38,4 @@ The application will read a given bank statement and will write it in a google s
 
 ![Example of the spreadsheet](images/example.png)
 
-The cell content are hidden*
+*The cell contents are hidden*
