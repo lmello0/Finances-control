@@ -1,10 +1,15 @@
 import csv
 import os
-import shutil
 from ftplib import FTP
+from time import sleep
+
+import pandas as pd
+
 
 def get_operation(operation:str):
-    if 'COMPRA CARTAO' in operation or 'PAGAMENTO FATURA INTER' in operation:
+    if 'COMPRA CARTAO' in operation or \
+        'PAGAMENTO FATURA INTER' in operation or \
+        'TED RECEBIDA' in operation:
         return operation[:operation.find('-')].strip(), operation[operation.find('-')+2:].strip()
     
     return operation[:operation.find(':')-5].strip(), operation[operation.find(':')+10:]
@@ -30,12 +35,37 @@ def inter_fin(file):
                 date = row[0].strip()
                 operation, destination = get_operation(row[1].strip())
                 amount = float(row[2].strip().replace(',', '.'))
-                balance = brazilian_money_to_us_money(row[3])
 
-                transaction = (date.strip(), operation.strip(), amount, balance, destination)
+                transaction = [date.strip(), operation.strip(), destination, amount]
                 transactions.append(transaction)
     
-    return transactions
+    COLUMNS = ['DATE', 'OPERATION', 'DESTINATION', 'AMOUNT']
+    dataframe = pd.DataFrame(transactions, columns=COLUMNS)
+
+    return dataframe
+
+def get_existing_worksheet(worksheet):
+    total_rows = worksheet.row_count
+
+    COLUMNS = ['DATE', 'OPERATION', 'DESTINATION', 'AMOUNT']
+    dataframe = pd.DataFrame(columns=COLUMNS)
+
+    for i in range(8, total_rows):
+        row_value = worksheet.row_values(i)
+
+        if len(row_value) != 0:
+            row = pd.DataFrame([row_value], columns=COLUMNS)
+            dataframe = pd.concat([dataframe, row])
+            sleep(1.5)
+        else:
+            break
+
+    dataframe = dataframe.iloc[::-1]
+    dataframe = dataframe.reset_index(drop=True)
+    dataframe['AMOUNT'] = dataframe['AMOUNT'].astype('string')
+    dataframe['AMOUNT'].replace('[\$,]', '', regex=True, inplace=True)
+    dataframe['AMOUNT'] = dataframe['AMOUNT'].astype('float64')
+    return dataframe
 
 def get_file(session:FTP):
     for file in session.nlst():
@@ -49,6 +79,3 @@ def move_bank_statement(file:str, session:FTP):
     session.storbinary(f'STOR ./log/{file}', open(file, 'rb'))
     session.delete(file)
     os.remove(file)
-
-if __name__ == '__main__':
-    print(inter_fin(get_file()))
