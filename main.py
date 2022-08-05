@@ -9,7 +9,7 @@ from core import *
 
 start = time()
 
-print('LOGANDO FTP')
+print('LOGGING IN FTP')
 session = FTP(sys.argv[1], sys.argv[2], sys.argv[3])
 
 print('GETTING MONTH')
